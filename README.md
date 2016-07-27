@@ -3,7 +3,7 @@
 - [x] text editor
 - [ ] real-time desktop stock market
 - [ ] real-time desktop weather report
-- [ ] port scanner (input IP and check for open ports, if any)
+- [x] port scanner (input IP and port, and check if its open)
 - [ ] packet sniffer
 - [ ] download manager
 - [x] web browser
