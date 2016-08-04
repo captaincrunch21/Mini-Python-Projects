@@ -1,6 +1,6 @@
 import sys
 from PyQt4.QtGui import *
-from PyQt4.QtCore import QUrl
+from PyQt4.QtCore import QUrl, QString
 from PyQt4.QtWebKit import QWebView, QWebPage
 from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
@@ -100,6 +100,10 @@ class Manager(QNetworkAccessManager):
         headers = {str(k):str(v) for k,v in headers}
         content_type = headers.get("Content-Type")
         url = reply.url().toString()
+        global page, url_input
+        #print(page.mainFrame().baseUrl().toString())
+        url_input.setText(QString(page.mainFrame().baseUrl().toString()))
+        url_input.clearFocus()
         status = reply.attribute(QNetworkRequest.HttpStatusCodeAttribute)
         status, ok = status.toInt()
         self.table.update([url, str(status), content_type])
@@ -128,6 +132,9 @@ if __name__ == "__main__":
 
     main_frame = QWidget()
     main_frame.setLayout(grid)
-    main_frame.showMaximized()
-
+    window = QMainWindow()
+    window.setWindowTitle('Browser')
+    window.setCentralWidget(main_frame)
+    window.showMaximized()
+    
     sys.exit(app.exec_())
