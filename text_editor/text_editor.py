@@ -36,6 +36,11 @@ class Main(QtGui.QMainWindow):
         self.PreviewAction.setShortcut("Ctrl+Shift+P")
         self.PreviewAction.triggered.connect(self.preview)
 
+        self.exitAction = QtGui.QAction(QtGui.QIcon("icons/quit.png"), "Exit", self)
+        self.exitAction.triggered.connect(QtCore.QCoreApplication.instance().quit)
+        self.exitAction.setStatusTip("Exit")
+        self.exitAction.setShortcut("Ctrl+Q")
+
         self.CutAction = QtGui.QAction(QtGui.QIcon("icons/cut.png"),"Cut to clipboard",self)
         self.CutAction.setStatusTip("Delete and copy text to clipboard")
         self.CutAction.setShortcut("Ctrl+X")
@@ -61,6 +66,11 @@ class Main(QtGui.QMainWindow):
         self.RedoAction.setShortcut("Ctrl+Y")
         self.RedoAction.triggered.connect(self.text.redo)
 
+        self.fontAction = QtGui.QAction(QtGui.QIcon("icons/font.png"), "Font Options", self)
+        self.fontAction.triggered.connect(self.font_change)
+        self.fontAction.setStatusTip("Change Font Style")
+        self.fontAction.setShortcut("Ctrl+F")
+
         BulletAction = QtGui.QAction(QtGui.QIcon("icons/bullet.png"),"Insert bullet List",self)
         BulletAction.setStatusTip("Insert bulleted list")
         BulletAction.setShortcut("Ctrl+Shift+B")
@@ -71,7 +81,9 @@ class Main(QtGui.QMainWindow):
         NumberedAction.setShortcut("Ctrl+Shift+L")
         NumberedAction.triggered.connect(self.numberList)
 
+
         self.toolbar = self.addToolBar("Options")
+
 
         self.toolbar.addAction(self.NewAction)
         self.toolbar.addAction(self.OpenAction)
@@ -92,6 +104,22 @@ class Main(QtGui.QMainWindow):
 
         self.toolbar.addSeparator()
 
+        self.toolbar.addAction(self.fontAction)
+
+        self.combo_box = QtGui.QComboBox(self)
+        self.comboAction = self.toolbar.addWidget(self.combo_box)
+        self.comboAction.setStatusTip("Change Style")
+        self.combo_box.addItem('gtk+')
+        self.combo_box.addItem("motif")
+        self.combo_box.addItem("Windows")
+        self.combo_box.addItem("cde")
+        self.combo_box.addItem("Plastique")
+        self.combo_box.addItem("Cleanlooks")
+        self.combo_box.activated[str].connect(self.change_style)
+        #self.combo_box.move(600, 10)
+
+
+        self.toolbar.addSeparator()
         self.toolbar.addAction(BulletAction)
         self.toolbar.addAction(NumberedAction)
 
@@ -104,18 +132,22 @@ class Main(QtGui.QMainWindow):
 
       file = menubar.addMenu("File")
       edit = menubar.addMenu("Edit")
+      format_menu = menubar.addMenu('Format')
 
       file.addAction(self.NewAction)
       file.addAction(self.OpenAction)
       file.addAction(self.SaveAction)
       file.addAction(self.PrintAction)
       file.addAction(self.PreviewAction)
+      file.addAction(self.exitAction)
 
       edit.addAction(self.UndoAction)
       edit.addAction(self.RedoAction)
       edit.addAction(self.CutAction)
       edit.addAction(self.CopyAction)
       edit.addAction(self.PasteAction)
+      
+      format_menu.addAction(self.fontAction)
 
     def initUI(self):
         self.text = QtGui.QTextEdit(self)
@@ -143,21 +175,17 @@ class Main(QtGui.QMainWindow):
         new_window.showMaximized()
 
     def open(self):
-        self.filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File',".","(*.writer)")
+        self.filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
 
         if self.filename:
             with open(self.filename,"rt") as file:
                 self.text.setText(file.read())
 
     def save(self):
-        if not self.filename:
-          self.filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
-
-        if not self.filename.endswith(".writer"):
-          self.filename += ".writer"
+        self.filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
 
         with open(self.filename,"wt") as file:
-            file.write(self.text.toHtml())
+            file.write(self.text.toPlainText())
 
 
     def preview(self):
@@ -180,6 +208,16 @@ class Main(QtGui.QMainWindow):
 
         self.statusbar.showMessage("Line: {} | Column: {}".format(line,col))
 
+
+    def font_change(self):
+        font, valid = QtGui.QFontDialog.getFont()
+
+        if valid:
+            self.text.setFont(font)
+        else:
+            pass
+
+
     def bulletList(self):
         cursor = self.text.textCursor()
         cursor.insertList(QtGui.QTextListFormat.ListDisc)
@@ -187,6 +225,10 @@ class Main(QtGui.QMainWindow):
     def numberList(self):
         cursor = self.text.textCursor()
         cursor.insertList(QtGui.QTextListFormat.ListDecimal)
+
+    def change_style(self, text):
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(text))
+
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
