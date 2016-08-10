@@ -82,6 +82,12 @@ class Main(QtGui.QMainWindow):
         NumberedAction.triggered.connect(self.numberList)
 
 
+
+        self.bgcolorAction = QtGui.QAction(QtGui.QIcon("icons/bg-color.png"), "Change Bg Color", self)
+        self.bgcolorAction.setStatusTip("Change Background Color")
+        self.bgcolorAction.triggered.connect(self.change_bgcolor)
+
+
         self.toolbar = self.addToolBar("Options")
 
 
@@ -105,6 +111,7 @@ class Main(QtGui.QMainWindow):
         self.toolbar.addSeparator()
 
         self.toolbar.addAction(self.fontAction)
+        self.toolbar.addAction(self.bgcolorAction)
 
         self.combo_box = QtGui.QComboBox(self)
         self.comboAction = self.toolbar.addWidget(self.combo_box)
@@ -117,7 +124,6 @@ class Main(QtGui.QMainWindow):
         self.combo_box.addItem("Cleanlooks")
         self.combo_box.activated[str].connect(self.change_style)
         #self.combo_box.move(600, 10)
-
 
         self.toolbar.addSeparator()
         self.toolbar.addAction(BulletAction)
@@ -217,6 +223,13 @@ class Main(QtGui.QMainWindow):
         else:
             pass
 
+
+    def change_bgcolor(self):
+        color = QtGui.QColorDialog.getColor()
+        if color.isValid():
+            self.text.setStyleSheet("QWidget { background-color : %s }" % color.name())
+        else:
+            self.text.setStyleSheet("QWidget { background-color : #ffffff }")
 
     def bulletList(self):
         cursor = self.text.textCursor()
