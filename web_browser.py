@@ -1,8 +1,21 @@
-import sys
+import sys, pickle, os
 from PyQt4.QtGui import *
 from PyQt4.QtCore import QUrl, QString
 from PyQt4.QtWebKit import QWebView, QWebPage
 from PyQt4.QtNetwork import QNetworkAccessManager, QNetworkRequest
+
+if(os.path.exists("bookmarks.txt")):
+    b = open("bookmarks.txt","rb")
+    try:
+        bookmarks = pickle.loads(b.read())
+    except:
+        bookmarks = list()
+    b.close()
+else:
+    b = open("bookmarks.txt","w")
+    b.close()
+
+url = ""
 
 class UrlInput(QLineEdit):
     def __init__(self, browser):
@@ -108,33 +121,40 @@ class Manager(QNetworkAccessManager):
         status, ok = status.toInt()
         self.table.update([url, str(status), content_type])
 
+class Main(QMainWindow):
+    def __init__(self):
+        QMainWindow.__init__(self)
+        self.initUI()
+
+    def initUI(self):
+        self.grid = QGridLayout()
+        self.browser = QWebView()
+        self.url_input = UrlInput(self.browser)
+        self.requests_table = RequestsTable()
+
+        self.manager = Manager(self.requests_table)
+        self.page = QWebPage()
+        self.page.setNetworkAccessManager(self.manager)
+        self.browser.setPage(self.page)
+
+        self.js_eval = JavaScriptEvaluator(self.page)
+        self.commands = ActionBox(self.page)
+
+        self.grid.addWidget(self.url_input, 1, 0)
+        self.grid.addWidget(self.commands, 2, 0)
+        self.grid.addWidget(self.browser, 3, 0)
+        self.grid.addWidget(self.requests_table, 4, 0)
+        self.grid.addWidget(self.js_eval, 5, 0)
+
+        self.main_frame = QWidget()
+        self.main_frame.setLayout(self.grid)
+
+        self.setCentralWidget(self.main_frame)
+        self.setWindowTitle('PySurf')
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-
-    grid = QGridLayout()
-    browser = QWebView()
-    url_input = UrlInput(browser)
-    requests_table = RequestsTable()
-
-    manager = Manager(requests_table)
-    page = QWebPage()
-    page.setNetworkAccessManager(manager)
-    browser.setPage(page)
-
-    js_eval = JavaScriptEvaluator(page)
-    commands = ActionBox(page)
-
-    grid.addWidget(url_input, 1, 0)
-    grid.addWidget(commands, 2, 0)
-    grid.addWidget(browser, 3, 0)
-    grid.addWidget(requests_table, 4, 0)
-    grid.addWidget(js_eval, 5, 0)
-
-    main_frame = QWidget()
-    main_frame.setLayout(grid)
-    window = QMainWindow()
-    window.setWindowTitle('Browser')
-    window.setCentralWidget(main_frame)
+    window = Main()
     window.showMaximized()
     
     sys.exit(app.exec_())
