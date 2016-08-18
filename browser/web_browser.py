@@ -19,7 +19,8 @@ url = ""
 
 def check_connection():
 	try:
-		response=urllib2.urlopen('http://motherfucking.com',timeout=5)
+		# Only reason to connect to this link : the site is very lightweight !
+		response=urllib2.urlopen('http://motherfuckingwebsite.com',timeout=5)
 		return True
 	except:
 		return False
