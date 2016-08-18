@@ -1,8 +1,90 @@
 # binpress tutorial
 
-import sys
+import sys, re
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
+
+class Find(QtGui.QDialog):
+    def __init__(self, parent = None):
+        QtGui.QDialog.__init__(self, parent)
+        self.parent = parent
+        self.last_idx = 0
+        self.initUI()
+
+    def initUI(self):
+        Label1 = QtGui.QLabel("Find :")
+        Label2 = QtGui.QLabel("Replace :")
+
+        FindButton = QtGui.QPushButton("Find", self)
+        FindButton.clicked.connect(self.find)
+
+        ReplaceButton = QtGui.QPushButton("Replace", self)
+        ReplaceButton.clicked.connect(self.replace)
+
+        ReplaceAllButton = QtGui.QPushButton("Replace All", self)
+        ReplaceAllButton.clicked.connect(self.replace_all)
+
+        self.FindField = QtGui.QLineEdit(self)
+
+        self.ReplaceField = QtGui.QLineEdit(self)
+
+        layout = QtGui.QGridLayout()
+
+        layout.addWidget(Label1, 1, 0)
+        layout.addWidget(self.FindField, 1, 1, 1, 4)
+        layout.addWidget(FindButton, 2, 1)
+        layout.addWidget(Label2, 3, 0)
+        layout.addWidget(self.ReplaceField, 3, 1, 1, 4)
+        layout.addWidget(ReplaceButton, 4, 1)
+        layout.addWidget(ReplaceAllButton, 4, 2)
+
+        self.setGeometry(300, 300, 360, 250)
+        self.setWindowTitle("Find & Replace")
+        self.setLayout(layout)
+
+    def find(self):
+        text = str(self.parent.textarea.toPlainText())
+        query = str(self.FindField.text())
+
+        self.last_idx = text.find(query, self.last_idx + 1)
+        if(self.last_idx >= 0):
+            end = self.last_idx + len(query)
+            self.move_cursor(self.last_idx, end)
+        else:
+            self.last_idx = 0
+            self.parent.textarea.moveCursor(QtGui.QTextCursor.End)
+
+        '''
+        pattern = re.compile("(?:\A|\s+)"+query+"(?=\Z|\s+)")
+        match = pattern.search(text, self.last_idx + 1)
+
+        if(match):
+            self.last_idx = match.start()
+            self.move_cursor(self.last_idx, match.end())
+        else:
+            self.last_idx = 0
+            self.parent.textarea.moveCursor(QtGui.QTextCursor.End)
+        '''
+
+    def replace(self):
+        cursor = self.parent.textarea.textCursor()
+        if(cursor.hasSelection()):
+            cursor.insertText(self.ReplaceField.text())
+            self.parent.textarea.setTextCursor(cursor)
+
+    def replace_all(self):
+        self.last_idx = 0
+        self.find()
+
+        while(self.last_idx):
+            self.replace()
+            self.find()
+
+    def move_cursor(self, start, end):
+        cursor = self.parent.textarea.textCursor()
+        cursor.setPosition(start)
+        cursor.movePosition(QtGui.QTextCursor.Right, QtGui.QTextCursor.KeepAnchor, end - start)
+        self.parent.textarea.setTextCursor(cursor)
 
 class Main(QtGui.QMainWindow):
     def __init__(self, parent = None):
@@ -44,32 +126,37 @@ class Main(QtGui.QMainWindow):
         self.CutAction = QtGui.QAction(QtGui.QIcon("icons/cut.png"),"Cut to clipboard",self)
         self.CutAction.setStatusTip("Delete and copy text to clipboard")
         self.CutAction.setShortcut("Ctrl+X")
-        self.CutAction.triggered.connect(self.text.cut)
+        self.CutAction.triggered.connect(self.textarea.cut)
 
         self.CopyAction = QtGui.QAction(QtGui.QIcon("icons/copy.png"),"Copy to clipboard",self)
         self.CopyAction.setStatusTip("Copy text to clipboard")
         self.CopyAction.setShortcut("Ctrl+C")
-        self.CopyAction.triggered.connect(self.text.copy)
+        self.CopyAction.triggered.connect(self.textarea.copy)
 
         self.PasteAction = QtGui.QAction(QtGui.QIcon("icons/paste.png"),"Paste from clipboard",self)
         self.PasteAction.setStatusTip("Paste text from clipboard")
         self.PasteAction.setShortcut("Ctrl+V")
-        self.PasteAction.triggered.connect(self.text.paste)
+        self.PasteAction.triggered.connect(self.textarea.paste)
 
         self.UndoAction = QtGui.QAction(QtGui.QIcon("icons/undo.png"),"Undo last action",self)
         self.UndoAction.setStatusTip("Undo last action")
         self.UndoAction.setShortcut("Ctrl+Z")
-        self.UndoAction.triggered.connect(self.text.undo)
+        self.UndoAction.triggered.connect(self.textarea.undo)
 
         self.RedoAction = QtGui.QAction(QtGui.QIcon("icons/redo.png"),"Redo last undone thing",self)
         self.RedoAction.setStatusTip("Redo last undone thing")
         self.RedoAction.setShortcut("Ctrl+Y")
-        self.RedoAction.triggered.connect(self.text.redo)
+        self.RedoAction.triggered.connect(self.textarea.redo)
 
         self.fontAction = QtGui.QAction(QtGui.QIcon("icons/font.png"), "Font Options", self)
         self.fontAction.triggered.connect(self.font_change)
         self.fontAction.setStatusTip("Change Font Style")
-        self.fontAction.setShortcut("Ctrl+F")
+        self.fontAction.setShortcut("Ctrl+T")
+
+        self.FindAction = QtGui.QAction(QtGui.QIcon("icons/find.png"), "Find/Replace", self)
+        self.FindAction.triggered.connect(Find(self).show)
+        self.FindAction.setStatusTip("Find or replace words/phrases in the file")
+        self.FindAction.setShortcut("Ctrl+F")
 
         BulletAction = QtGui.QAction(QtGui.QIcon("icons/bullet.png"),"Insert bullet List",self)
         BulletAction.setStatusTip("Insert bulleted list")
@@ -81,15 +168,11 @@ class Main(QtGui.QMainWindow):
         NumberedAction.setShortcut("Ctrl+Shift+L")
         NumberedAction.triggered.connect(self.numberList)
 
-
-
         self.bgcolorAction = QtGui.QAction(QtGui.QIcon("icons/bg-color.png"), "Change Bg Color", self)
         self.bgcolorAction.setStatusTip("Change Background Color")
         self.bgcolorAction.triggered.connect(self.change_bgcolor)
 
-
         self.toolbar = self.addToolBar("Options")
-
 
         self.toolbar.addAction(self.NewAction)
         self.toolbar.addAction(self.OpenAction)
@@ -107,24 +190,15 @@ class Main(QtGui.QMainWindow):
         self.toolbar.addAction(self.PasteAction)
         self.toolbar.addAction(self.UndoAction)
         self.toolbar.addAction(self.RedoAction)
+        self.toolbar.addAction(self.FindAction)
 
         self.toolbar.addSeparator()
 
         self.toolbar.addAction(self.fontAction)
         self.toolbar.addAction(self.bgcolorAction)
 
-        self.combo_box = QtGui.QComboBox(self)
-        self.comboAction = self.toolbar.addWidget(self.combo_box)
-        self.comboAction.setStatusTip("Change Style")
-        self.combo_box.addItem('gtk+')
-        self.combo_box.addItem("motif")
-        self.combo_box.addItem("Windows")
-        self.combo_box.addItem("cde")
-        self.combo_box.addItem("Plastique")
-        self.combo_box.addItem("Cleanlooks")
-        self.combo_box.activated[str].connect(self.change_style)
-        #self.combo_box.move(600, 10)
-
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Plastique"))
+        
         self.toolbar.addSeparator()
         self.toolbar.addAction(BulletAction)
         self.toolbar.addAction(NumberedAction)
@@ -152,25 +226,26 @@ class Main(QtGui.QMainWindow):
       edit.addAction(self.CutAction)
       edit.addAction(self.CopyAction)
       edit.addAction(self.PasteAction)
+      edit.addAction(self.FindAction)
       
       format_menu.addAction(self.fontAction)
 
     def initUI(self):
-        self.text = QtGui.QTextEdit(self)
+        self.textarea = QtGui.QTextEdit(self)
 
         self.initToolbar()
         self.initFormatbar()
         self.initMenubar()
 
         # Setting tab to 4 spaces
-        self.text.setTabStopWidth(33)
+        self.textarea.setTabStopWidth(33)
 
-        self.setCentralWidget(self.text)
+        self.setCentralWidget(self.textarea)
 
         self.statusbar = self.statusBar()
 
         # If the cursor position changes, call the function that displays the line and column number
-        self.text.cursorPositionChanged.connect(self.cursorPosition)
+        self.textarea.cursorPositionChanged.connect(self.cursorPosition)
 
         self.setWindowTitle("Writer")
 
@@ -184,15 +259,18 @@ class Main(QtGui.QMainWindow):
         self.filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
 
         if self.filename:
+            # rt and r are same mode
             with open(self.filename,"rt") as file:
                 self.text.setText(file.read())
 
     def save(self):
         self.filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
-
-        with open(self.filename,"wt") as file:
-            file.write(self.text.toPlainText())
-
+        # for IO error when the dialog box is closed
+        try:
+            with open(self.filename,"wt") as file:
+                file.write(self.textarea.toPlainText())
+        except:
+            pass
 
     def preview(self):
         preview = QtGui.QPrintPreviewDialog()
@@ -203,45 +281,38 @@ class Main(QtGui.QMainWindow):
         dialog = QtGui.QPrintDialog()
 
         if dialog.exec_() == QtGui.QDialog.Accepted:
-            self.text.document().print_(dialog.printer())
-
+            self.textarea.document().print_(dialog.printer())
 
     def cursorPosition(self):
-        cursor = self.text.textCursor()
+        cursor = self.textarea.textCursor()
 
         line = cursor.blockNumber() + 1
         col = cursor.columnNumber()
 
         self.statusbar.showMessage("Line: {} | Column: {}".format(line,col))
 
-
     def font_change(self):
         font, valid = QtGui.QFontDialog.getFont()
 
         if valid:
-            self.text.setFont(font)
+            self.textarea.setFont(font)
         else:
             pass
-
 
     def change_bgcolor(self):
         color = QtGui.QColorDialog.getColor()
         if color.isValid():
-            self.text.setStyleSheet("QWidget { background-color : %s }" % color.name())
+            self.textarea.setStyleSheet("QWidget { background-color : %s }" % color.name())
         else:
-            self.text.setStyleSheet("QWidget { background-color : #ffffff }")
+            self.textarea.setStyleSheet("QWidget { background-color : #ffffff }")
 
     def bulletList(self):
-        cursor = self.text.textCursor()
+        cursor = self.textarea.textCursor()
         cursor.insertList(QtGui.QTextListFormat.ListDisc)
 
     def numberList(self):
-        cursor = self.text.textCursor()
+        cursor = self.textarea.textCursor()
         cursor.insertList(QtGui.QTextListFormat.ListDecimal)
-
-    def change_style(self, text):
-        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(text))
-
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
