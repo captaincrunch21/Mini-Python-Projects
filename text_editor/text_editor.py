@@ -98,6 +98,11 @@ class Main(QtGui.QMainWindow):
         self.NewAction.setShortcut("Ctrl+N")
         self.NewAction.triggered.connect(self.new)
 
+        self.NewTabAction = QtGui.QAction("New Tab", self)
+        self.NewTabAction.setStatusTip("New Tab")
+        self.NewTabAction.setShortcut("Ctrl+T")
+        self.NewTabAction.triggered.connect(self.new_tab)
+
         self.OpenAction = QtGui.QAction(QtGui.QIcon("icons/open.png"),"Open file",self)
         self.OpenAction.setStatusTip("Open existing document")
         self.OpenAction.setShortcut("Ctrl+O")
@@ -151,7 +156,7 @@ class Main(QtGui.QMainWindow):
         self.fontAction = QtGui.QAction(QtGui.QIcon("icons/font.png"), "Font Options", self)
         self.fontAction.triggered.connect(self.font_change)
         self.fontAction.setStatusTip("Change Font Style")
-        self.fontAction.setShortcut("Ctrl+T")
+        # self.fontAction.setShortcut("Ctrl+T")
 
         self.FindAction = QtGui.QAction(QtGui.QIcon("icons/find.png"), "Find/Replace", self)
         self.FindAction.triggered.connect(Find(self).show)
@@ -175,6 +180,7 @@ class Main(QtGui.QMainWindow):
         self.toolbar = self.addToolBar("Options")
 
         self.toolbar.addAction(self.NewAction)
+        self.toolbar.addAction(self.NewTabAction)
         self.toolbar.addAction(self.OpenAction)
         self.toolbar.addAction(self.SaveAction)
 
@@ -197,8 +203,8 @@ class Main(QtGui.QMainWindow):
         self.toolbar.addAction(self.fontAction)
         self.toolbar.addAction(self.bgcolorAction)
 
-        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Plastique"))
-        
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("gtk+"))
+
         self.toolbar.addSeparator()
         self.toolbar.addAction(BulletAction)
         self.toolbar.addAction(NumberedAction)
@@ -215,6 +221,7 @@ class Main(QtGui.QMainWindow):
       format_menu = menubar.addMenu('Format')
 
       file.addAction(self.NewAction)
+      file.addAction(self.NewTabAction)
       file.addAction(self.OpenAction)
       file.addAction(self.SaveAction)
       file.addAction(self.PrintAction)
@@ -230,22 +237,33 @@ class Main(QtGui.QMainWindow):
       
       format_menu.addAction(self.fontAction)
 
+    def init_tab_bar(self):
+        self.tabbar = self.addToolBar("Tabs Bar")
+        self.tabs_action = []
+        self.close_tabs_action = []
+        self.text_areas = []
+
     def initUI(self):
         self.textarea = QtGui.QTextEdit(self)
+        self.central_widget = QtGui.QStackedWidget()
+        self.setCentralWidget(self.central_widget)
+        self.central_widget.addWidget(self.textarea)
+        self.central_widget.setCurrentWidget(self.textarea)
 
         self.initToolbar()
         self.initFormatbar()
         self.initMenubar()
+        self.init_tab_bar()
 
         # Setting tab to 4 spaces
-        self.textarea.setTabStopWidth(33)
+        #self.textarea.setTabStopWidth(33)
 
-        self.setCentralWidget(self.textarea)
+        #self.setCentralWidget(self.textarea)
 
         self.statusbar = self.statusBar()
 
         # If the cursor position changes, call the function that displays the line and column number
-        self.textarea.cursorPositionChanged.connect(self.cursorPosition)
+        #self.textarea.cursorPositionChanged.connect(self.cursorPosition)
 
         self.setWindowTitle("Writer")
 
@@ -255,26 +273,60 @@ class Main(QtGui.QMainWindow):
         new_window = Main(self)
         new_window.showMaximized()
 
+    def show_tab(self, index):
+        self.textarea = self.text_areas[index]
+        self.central_widget.setCurrentWidget(self.textarea)
+
+        print "Showing Untitled" + str(index)
+
+    def remove_tab(self, index):
+        self.tabbar.removeAction(self.tabs_action[index])
+        self.tabbar.removeAction(self.close_tabs_action[index])
+
+        self.tabs_action[index] = None
+        self.close_tabs_action[index] = None
+        self.text_areas[index] = None
+
+        print "removed" + str(index)
+
+    def new_tab(self):
+        self.length = len(self.tabs_action)
+        self.tabs_action.append(QtGui.QAction("Untitled"+str(self.length), self))
+
+        self.close_tabs_action.append(QtGui.QAction("x", self))
+        self.text_areas.append(QtGui.QTextEdit(self))
+        self.text_areas[-1].setTabStopWidth(33)
+
+        self.tabbar.addAction(self.tabs_action[-1])
+        self.tabbar.addAction(self.close_tabs_action[-1])
+        self.central_widget.addWidget(self.text_areas[-1])
+        self.central_widget.setCurrentWidget(self.text_areas[-1])
+        self.textarea = self.text_areas[-1]
+
+        index = len(self.tabs_action)-1
+        self.tabs_action[index].triggered.connect(lambda checked, index=index: self.show_tab(index))
+        self.close_tabs_action[index].triggered.connect(lambda checked, index=index: self.remove_tab(index))
+
     def open(self):
         self.filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
 
         if self.filename:
             # rt and r are same mode
-            with open(self.filename,"rt") as file:
+            with open(self.filename, "rt") as file:
                 self.text.setText(file.read())
 
     def save(self):
         self.filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
         # for IO error when the dialog box is closed
         try:
-            with open(self.filename,"wt") as file:
+            with open(self.filename, "wt") as file:
                 file.write(self.textarea.toPlainText())
         except:
             pass
 
     def preview(self):
         preview = QtGui.QPrintPreviewDialog()
-        preview.paintRequested.connect(lambda p: self.text.print_(p))
+        preview.paintRequested.connect(lambda p: self.textarea.print_(p))
         preview.exec_()
 
     def printer(self):
