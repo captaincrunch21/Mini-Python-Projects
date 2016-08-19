@@ -93,14 +93,9 @@ class Main(QtGui.QMainWindow):
         self.initUI()
 
     def initToolbar(self):
-        self.NewAction = QtGui.QAction(QtGui.QIcon("icons/new.png"),"New",self)
-        self.NewAction.setStatusTip("Create a new document.")
-        self.NewAction.setShortcut("Ctrl+N")
-        self.NewAction.triggered.connect(self.new)
-
-        self.NewTabAction = QtGui.QAction("New Tab", self)
-        self.NewTabAction.setStatusTip("New Tab")
-        self.NewTabAction.setShortcut("Ctrl+T")
+        self.NewTabAction = QtGui.QAction(QtGui.QIcon("icons/new.png"), "New File", self)
+        self.NewTabAction.setStatusTip("Create a new document")
+        self.NewTabAction.setShortcut("Ctrl+N")
         self.NewTabAction.triggered.connect(self.new_tab)
 
         self.OpenAction = QtGui.QAction(QtGui.QIcon("icons/open.png"),"Open file",self)
@@ -156,7 +151,7 @@ class Main(QtGui.QMainWindow):
         self.fontAction = QtGui.QAction(QtGui.QIcon("icons/font.png"), "Font Options", self)
         self.fontAction.triggered.connect(self.font_change)
         self.fontAction.setStatusTip("Change Font Style")
-        # self.fontAction.setShortcut("Ctrl+T")
+        self.fontAction.setShortcut("Ctrl+T")
 
         self.FindAction = QtGui.QAction(QtGui.QIcon("icons/find.png"), "Find/Replace", self)
         self.FindAction.triggered.connect(Find(self).show)
@@ -179,8 +174,6 @@ class Main(QtGui.QMainWindow):
 
         self.toolbar = self.addToolBar("Options")
 
-        self.toolbar.addAction(self.NewAction)
-        self.toolbar.addAction(self.NewTabAction)
         self.toolbar.addAction(self.OpenAction)
         self.toolbar.addAction(self.SaveAction)
 
@@ -203,15 +196,12 @@ class Main(QtGui.QMainWindow):
         self.toolbar.addAction(self.fontAction)
         self.toolbar.addAction(self.bgcolorAction)
 
-        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("gtk+"))
+        #QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("gtk+"))
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Plastique"))
 
         self.toolbar.addSeparator()
         self.toolbar.addAction(BulletAction)
         self.toolbar.addAction(NumberedAction)
-
-    def initFormatbar(self):
-      self.formatbar = self.addToolBar("Format")
-
 
     def initMenubar(self):
       menubar = self.menuBar()
@@ -220,7 +210,6 @@ class Main(QtGui.QMainWindow):
       edit = menubar.addMenu("Edit")
       format_menu = menubar.addMenu('Format')
 
-      file.addAction(self.NewAction)
       file.addAction(self.NewTabAction)
       file.addAction(self.OpenAction)
       file.addAction(self.SaveAction)
@@ -251,22 +240,14 @@ class Main(QtGui.QMainWindow):
         self.central_widget.setCurrentWidget(self.textarea)
 
         self.initToolbar()
-        self.initFormatbar()
         self.initMenubar()
         self.init_tab_bar()
 
-        # Setting tab to 4 spaces
-        #self.textarea.setTabStopWidth(33)
-
-        #self.setCentralWidget(self.textarea)
+        self.idx = 0
+        self.new_tab()
 
         self.statusbar = self.statusBar()
-
-        # If the cursor position changes, call the function that displays the line and column number
-        #self.textarea.cursorPositionChanged.connect(self.cursorPosition)
-
         self.setWindowTitle("Writer")
-
         self.setWindowIcon(QtGui.QIcon("icons/icon.png"))
 
     def new(self):
@@ -277,17 +258,48 @@ class Main(QtGui.QMainWindow):
         self.textarea = self.text_areas[index]
         self.central_widget.setCurrentWidget(self.textarea)
 
-        print "Showing Untitled" + str(index)
-
     def remove_tab(self, index):
-        self.tabbar.removeAction(self.tabs_action[index])
-        self.tabbar.removeAction(self.close_tabs_action[index])
+        if(len(str(self.text_areas[index].toPlainText()).strip()) == 0):
+            self.tabbar.removeAction(self.tabs_action[index])
+            self.tabbar.removeAction(self.close_tabs_action[index])
+            
+            self.tabs_action[index] = None
+            self.close_tabs_action[index] = None
+            self.text_areas[index] = None
 
-        self.tabs_action[index] = None
-        self.close_tabs_action[index] = None
-        self.text_areas[index] = None
+            junk = set()
+            
+            for area in self.text_areas:
+                junk.add(area)
 
-        print "removed" + str(index)
+            if(len(junk) == 1):
+                QtGui.QApplication.quit()
+
+            del junk
+            return
+        
+        quit_msg = "Have you saved your work ?\nAre you sure you want to close this tab ?"
+        reply = QtGui.QMessageBox.question(self, 'Alert', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        
+        if reply == QtGui.QMessageBox.Yes:
+            self.tabbar.removeAction(self.tabs_action[index])
+            self.tabbar.removeAction(self.close_tabs_action[index])
+            
+            self.tabs_action[index] = None
+            self.close_tabs_action[index] = None
+            self.text_areas[index] = None
+
+            junk = set()
+            
+            for area in self.text_areas:
+                junk.add(area)
+
+            if(len(junk) == 1):
+                QtGui.QApplication.quit()
+
+            del junk
+        else:
+            pass
 
     def new_tab(self):
         self.length = len(self.tabs_action)
@@ -295,6 +307,7 @@ class Main(QtGui.QMainWindow):
 
         self.close_tabs_action.append(QtGui.QAction("x", self))
         self.text_areas.append(QtGui.QTextEdit(self))
+        # Setting tab to 4 spaces
         self.text_areas[-1].setTabStopWidth(33)
 
         self.tabbar.addAction(self.tabs_action[-1])
@@ -304,7 +317,12 @@ class Main(QtGui.QMainWindow):
         self.textarea = self.text_areas[-1]
 
         index = len(self.tabs_action)-1
+        self.idx = index
+
         self.tabs_action[index].triggered.connect(lambda checked, index=index: self.show_tab(index))
+        # If the cursor position changes, call the function that displays the line and column number
+        self.text_areas[self.idx].cursorPositionChanged.connect(self.cursorPosition)
+        
         self.close_tabs_action[index].triggered.connect(lambda checked, index=index: self.remove_tab(index))
 
     def open(self):
@@ -365,6 +383,14 @@ class Main(QtGui.QMainWindow):
     def numberList(self):
         cursor = self.textarea.textCursor()
         cursor.insertList(QtGui.QTextListFormat.ListDecimal)
+
+    def closeEvent(self, event):
+        quit_msg = "Have you saved your work ?\nAre you sure you want to exit ?"
+        reply = QtGui.QMessageBox.question(self, 'Alert', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            event.accept()
+        else:
+            event.ignore()
 
 if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
