@@ -1,5 +1,3 @@
-# binpress tutorial
-
 import sys, re
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
@@ -126,27 +124,33 @@ class Main(QtGui.QMainWindow):
         self.CutAction = QtGui.QAction(QtGui.QIcon("icons/cut.png"),"Cut to clipboard",self)
         self.CutAction.setStatusTip("Delete and copy text to clipboard")
         self.CutAction.setShortcut("Ctrl+X")
-        self.CutAction.triggered.connect(self.textarea.cut)
+        #self.CutAction.triggered.connect(self.textarea.cut)
+        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].cut)
+        self.CutAction.triggered.connect(self.cut)
 
         self.CopyAction = QtGui.QAction(QtGui.QIcon("icons/copy.png"),"Copy to clipboard",self)
         self.CopyAction.setStatusTip("Copy text to clipboard")
         self.CopyAction.setShortcut("Ctrl+C")
-        self.CopyAction.triggered.connect(self.textarea.copy)
+        self.CopyAction.triggered.connect(self.copy)
+        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].copy)
 
         self.PasteAction = QtGui.QAction(QtGui.QIcon("icons/paste.png"),"Paste from clipboard",self)
         self.PasteAction.setStatusTip("Paste text from clipboard")
         self.PasteAction.setShortcut("Ctrl+V")
-        self.PasteAction.triggered.connect(self.textarea.paste)
+        self.PasteAction.triggered.connect(self.paste)
+        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].paste)
 
         self.UndoAction = QtGui.QAction(QtGui.QIcon("icons/undo.png"),"Undo last action",self)
         self.UndoAction.setStatusTip("Undo last action")
         self.UndoAction.setShortcut("Ctrl+Z")
-        self.UndoAction.triggered.connect(self.textarea.undo)
+        self.UndoAction.triggered.connect(self.undo)
+        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].undo)
 
         self.RedoAction = QtGui.QAction(QtGui.QIcon("icons/redo.png"),"Redo last undone thing",self)
         self.RedoAction.setStatusTip("Redo last undone thing")
         self.RedoAction.setShortcut("Ctrl+Y")
-        self.RedoAction.triggered.connect(self.textarea.redo)
+        self.RedoAction.triggered.connect(self.redo)
+        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].redo)
 
         self.fontAction = QtGui.QAction(QtGui.QIcon("icons/font.png"), "Font Options", self)
         self.fontAction.triggered.connect(self.font_change)
@@ -203,6 +207,26 @@ class Main(QtGui.QMainWindow):
         self.toolbar.addAction(BulletAction)
         self.toolbar.addAction(NumberedAction)
 
+    def cut(self):
+        self.textarea = self.text_areas[self.central_widget.currentIndex()]
+        self.textarea.cut()
+
+    def copy(self):
+        self.textarea = self.text_areas[self.central_widget.currentIndex()]
+        self.textarea.copy()
+
+    def paste(self):
+        self.textarea = self.text_areas[self.central_widget.currentIndex()]
+        self.textarea.paste()
+
+    def undo(self):
+        self.textarea = self.text_areas[self.central_widget.currentIndex()]
+        self.textarea.undo()
+
+    def redo(self):
+        self.textarea = self.text_areas[self.central_widget.currentIndex()]
+        self.textarea.redo()
+
     def initMenubar(self):
       menubar = self.menuBar()
 
@@ -227,17 +251,15 @@ class Main(QtGui.QMainWindow):
       format_menu.addAction(self.fontAction)
 
     def init_tab_bar(self):
-        self.tabbar = self.addToolBar("Tabs Bar")
         self.tabs_action = []
         self.close_tabs_action = []
         self.text_areas = []
 
     def initUI(self):
-        self.textarea = QtGui.QTextEdit(self)
-        self.central_widget = QtGui.QStackedWidget()
+        self.central_widget = QtGui.QTabWidget()
+        self.central_widget.setTabsClosable(True)
+        self.central_widget.tabCloseRequested.connect(self.remove_tab)
         self.setCentralWidget(self.central_widget)
-        self.central_widget.addWidget(self.textarea)
-        self.central_widget.setCurrentWidget(self.textarea)
 
         self.initToolbar()
         self.initMenubar()
@@ -255,14 +277,13 @@ class Main(QtGui.QMainWindow):
         new_window.showMaximized()
 
     def show_tab(self, index):
-        self.textarea = self.text_areas[index]
-        self.central_widget.setCurrentWidget(self.textarea)
+        self.central_widget.setCurrentWidget(self.text_areas[self.central_widget.currentIndex()])
+        self.textarea = self.text_areas[self.central_widget.currentIndex()]
 
     def remove_tab(self, index):
         if(len(str(self.text_areas[index].toPlainText()).strip()) == 0):
-            self.tabbar.removeAction(self.tabs_action[index])
-            self.tabbar.removeAction(self.close_tabs_action[index])
-            
+            self.central_widget.removeTab(index)
+
             self.tabs_action[index] = None
             self.close_tabs_action[index] = None
             self.text_areas[index] = None
@@ -277,13 +298,12 @@ class Main(QtGui.QMainWindow):
 
             del junk
             return
-        
-        quit_msg = "Have you saved your work ?\nAre you sure you want to close this tab ?"
+
+        quit_msg = "Have you saved your work ?\nIf not, are you sure you want to close this tab without saving ?"
         reply = QtGui.QMessageBox.question(self, 'Alert', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         
         if reply == QtGui.QMessageBox.Yes:
-            self.tabbar.removeAction(self.tabs_action[index])
-            self.tabbar.removeAction(self.close_tabs_action[index])
+            self.central_widget.removeTab(index)
             
             self.tabs_action[index] = None
             self.close_tabs_action[index] = None
@@ -300,7 +320,7 @@ class Main(QtGui.QMainWindow):
             del junk
         else:
             pass
-
+    
     def new_tab(self):
         self.length = len(self.tabs_action)
         self.tabs_action.append(QtGui.QAction("Untitled"+str(self.length), self))
@@ -310,11 +330,9 @@ class Main(QtGui.QMainWindow):
         # Setting tab to 4 spaces
         self.text_areas[-1].setTabStopWidth(33)
 
-        self.tabbar.addAction(self.tabs_action[-1])
-        self.tabbar.addAction(self.close_tabs_action[-1])
-        self.central_widget.addWidget(self.text_areas[-1])
+        self.central_widget.addTab(self.text_areas[-1], "Untitled"+str(self.length))
         self.central_widget.setCurrentWidget(self.text_areas[-1])
-        self.textarea = self.text_areas[-1]
+        #self.textarea = self.text_areas[self.central_widget.currentIndex()]
 
         index = len(self.tabs_action)-1
         self.idx = index
@@ -322,23 +340,21 @@ class Main(QtGui.QMainWindow):
         self.tabs_action[index].triggered.connect(lambda checked, index=index: self.show_tab(index))
         # If the cursor position changes, call the function that displays the line and column number
         self.text_areas[self.idx].cursorPositionChanged.connect(self.cursorPosition)
-        
-        self.close_tabs_action[index].triggered.connect(lambda checked, index=index: self.remove_tab(index))
 
     def open(self):
         self.filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
-
+        self.idx = self.central_widget.currentIndex()
         if self.filename:
             # rt and r are same mode
             with open(self.filename, "rt") as file:
-                self.text.setText(file.read())
+                self.text_areas[self.idx].setText(file.read())
 
     def save(self):
         self.filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
         # for IO error when the dialog box is closed
         try:
             with open(self.filename, "wt") as file:
-                file.write(self.textarea.toPlainText())
+                file.write(self.text_areas[self.central_widget.currentIndex()].toPlainText())
         except:
             pass
 
@@ -351,10 +367,10 @@ class Main(QtGui.QMainWindow):
         dialog = QtGui.QPrintDialog()
 
         if dialog.exec_() == QtGui.QDialog.Accepted:
-            self.textarea.document().print_(dialog.printer())
+            self.text_areas[self.central_widget.currentIndex()].document().print_(dialog.printer())
 
     def cursorPosition(self):
-        cursor = self.textarea.textCursor()
+        cursor = self.text_areas[self.central_widget.currentIndex()].textCursor()
 
         line = cursor.blockNumber() + 1
         col = cursor.columnNumber()
@@ -365,27 +381,27 @@ class Main(QtGui.QMainWindow):
         font, valid = QtGui.QFontDialog.getFont()
 
         if valid:
-            self.textarea.setFont(font)
+            self.text_areas[self.central_widget.currentIndex()].setFont(font)
         else:
             pass
 
     def change_bgcolor(self):
         color = QtGui.QColorDialog.getColor()
         if color.isValid():
-            self.textarea.setStyleSheet("QWidget { background-color : %s }" % color.name())
+            self.text_areas[self.central_widget.currentIndex()].setStyleSheet("QWidget { background-color : %s }" % color.name())
         else:
-            self.textarea.setStyleSheet("QWidget { background-color : #ffffff }")
+            self.text_areas[self.central_widget.currentIndex()].setStyleSheet("QWidget { background-color : #ffffff }")
 
     def bulletList(self):
-        cursor = self.textarea.textCursor()
+        cursor = self.text_areas[self.central_widget.currentIndex()].textCursor()
         cursor.insertList(QtGui.QTextListFormat.ListDisc)
 
     def numberList(self):
-        cursor = self.textarea.textCursor()
+        cursor = self.text_areas[self.central_widget.currentIndex()].textCursor()
         cursor.insertList(QtGui.QTextListFormat.ListDecimal)
 
     def closeEvent(self, event):
-        quit_msg = "Have you saved your work ?\nAre you sure you want to exit ?"
+        quit_msg = "Are you sure you want to exit ?"
         reply = QtGui.QMessageBox.question(self, 'Alert', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if reply == QtGui.QMessageBox.Yes:
             event.accept()
