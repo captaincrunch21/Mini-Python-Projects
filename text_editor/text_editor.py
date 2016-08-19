@@ -124,33 +124,27 @@ class Main(QtGui.QMainWindow):
         self.CutAction = QtGui.QAction(QtGui.QIcon("icons/cut.png"),"Cut to clipboard",self)
         self.CutAction.setStatusTip("Delete and copy text to clipboard")
         self.CutAction.setShortcut("Ctrl+X")
-        #self.CutAction.triggered.connect(self.textarea.cut)
-        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].cut)
         self.CutAction.triggered.connect(self.cut)
 
         self.CopyAction = QtGui.QAction(QtGui.QIcon("icons/copy.png"),"Copy to clipboard",self)
         self.CopyAction.setStatusTip("Copy text to clipboard")
         self.CopyAction.setShortcut("Ctrl+C")
         self.CopyAction.triggered.connect(self.copy)
-        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].copy)
 
         self.PasteAction = QtGui.QAction(QtGui.QIcon("icons/paste.png"),"Paste from clipboard",self)
         self.PasteAction.setStatusTip("Paste text from clipboard")
         self.PasteAction.setShortcut("Ctrl+V")
         self.PasteAction.triggered.connect(self.paste)
-        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].paste)
 
         self.UndoAction = QtGui.QAction(QtGui.QIcon("icons/undo.png"),"Undo last action",self)
         self.UndoAction.setStatusTip("Undo last action")
         self.UndoAction.setShortcut("Ctrl+Z")
         self.UndoAction.triggered.connect(self.undo)
-        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].undo)
 
         self.RedoAction = QtGui.QAction(QtGui.QIcon("icons/redo.png"),"Redo last undone thing",self)
         self.RedoAction.setStatusTip("Redo last undone thing")
         self.RedoAction.setShortcut("Ctrl+Y")
         self.RedoAction.triggered.connect(self.redo)
-        #self.CutAction.triggered.connect(self.text_areas[self.central_widget.currentIndex()].redo)
 
         self.fontAction = QtGui.QAction(QtGui.QIcon("icons/font.png"), "Font Options", self)
         self.fontAction.triggered.connect(self.font_change)
@@ -332,7 +326,6 @@ class Main(QtGui.QMainWindow):
 
         self.central_widget.addTab(self.text_areas[-1], "Untitled"+str(self.length))
         self.central_widget.setCurrentWidget(self.text_areas[-1])
-        #self.textarea = self.text_areas[self.central_widget.currentIndex()]
 
         index = len(self.tabs_action)-1
         self.idx = index
