@@ -1,6 +1,6 @@
 import sys, re
 from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import Qt
+from PyQt4.QtCore import Qt, pyqtSlot
 
 class Find(QtGui.QDialog):
     def __init__(self, parent = None):
@@ -194,8 +194,8 @@ class Main(QtGui.QMainWindow):
         self.toolbar.addAction(self.fontAction)
         self.toolbar.addAction(self.bgcolorAction)
 
-        #QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("gtk+"))
-        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Plastique"))
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("gtk+"))
+        #QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Plastique"))
 
         self.toolbar.addSeparator()
         self.toolbar.addAction(BulletAction)
@@ -211,6 +211,7 @@ class Main(QtGui.QMainWindow):
 
     def paste(self):
         self.textarea = self.text_areas[self.central_widget.currentIndex()]
+        #print(self.central_widget.currentIndex())
         self.textarea.paste()
 
     def undo(self):
@@ -250,6 +251,9 @@ class Main(QtGui.QMainWindow):
         self.text_areas = []
 
     def initUI(self):
+        self.close_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+W"), self, self.close_tab)
+        self.next_tab_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self, self.next_tab)
+        self.previous_tab_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+Shift+Tab"), self, self.previous_tab)
         self.central_widget = QtGui.QTabWidget()
         self.central_widget.setTabsClosable(True)
         self.central_widget.tabCloseRequested.connect(self.remove_tab)
@@ -274,23 +278,39 @@ class Main(QtGui.QMainWindow):
         self.central_widget.setCurrentWidget(self.text_areas[self.central_widget.currentIndex()])
         self.textarea = self.text_areas[self.central_widget.currentIndex()]
 
-    def remove_tab(self, index):
+    @pyqtSlot()
+    def previous_tab(self):
+        index = self.central_widget.currentIndex()
+        if(index == 0):
+            index = self.central_widget.count() - 1
+        else:
+            index -= 1
+        self.central_widget.setCurrentWidget(self.text_areas[index])
+        self.textarea = self.text_areas[index] 
+
+    @pyqtSlot()
+    def next_tab(self):
+        index = self.central_widget.currentIndex()
+        if(index + 1 == self.central_widget.count()):
+            index = 0
+        else:
+            index += 1
+        self.central_widget.setCurrentWidget(self.text_areas[index])
+        self.textarea = self.text_areas[index]
+
+    @pyqtSlot()
+    def close_tab(self):
+        index = self.central_widget.currentIndex()
         if(len(str(self.text_areas[index].toPlainText()).strip()) == 0):
             self.central_widget.removeTab(index)
 
-            self.tabs_action[index] = None
-            self.close_tabs_action[index] = None
-            self.text_areas[index] = None
+            self.tabs_action.remove(self.tabs_action[index])
+            self.close_tabs_action.remove(self.close_tabs_action[index])
+            self.text_areas.remove(self.text_areas[index])
 
-            junk = set()
-            
-            for area in self.text_areas:
-                junk.add(area)
-
-            if(len(junk) == 1):
+            if(self.central_widget.count() == 0):
                 QtGui.QApplication.quit()
 
-            del junk
             return
 
         quit_msg = "Have you saved your work ?\nIf not, are you sure you want to close this tab without saving ?"
@@ -299,19 +319,40 @@ class Main(QtGui.QMainWindow):
         if reply == QtGui.QMessageBox.Yes:
             self.central_widget.removeTab(index)
             
-            self.tabs_action[index] = None
-            self.close_tabs_action[index] = None
-            self.text_areas[index] = None
+            self.tabs_action.remove(self.tabs_action[index])
+            self.close_tabs_action.remove(self.close_tabs_action[index])
+            self.text_areas.remove(self.text_areas[index])
 
-            junk = set()
-            
-            for area in self.text_areas:
-                junk.add(area)
+            if(self.central_widget.count() == 0):
+                QtGui.QApplication.quit()
+        else:
+            pass
 
-            if(len(junk) == 1):
+    def remove_tab(self, index):
+        if(len(str(self.text_areas[index].toPlainText()).strip()) == 0):
+            self.central_widget.removeTab(index)
+
+            self.tabs_action.remove(self.tabs_action[index])
+            self.close_tabs_action.remove(self.close_tabs_action[index])
+            self.text_areas.remove(self.text_areas[index])
+
+            if(self.central_widget.count() == 0):
                 QtGui.QApplication.quit()
 
-            del junk
+            return
+
+        quit_msg = "Have you saved your work ?\nIf not, are you sure you want to close this tab without saving ?"
+        reply = QtGui.QMessageBox.question(self, 'Alert', quit_msg, QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        
+        if reply == QtGui.QMessageBox.Yes:
+            self.central_widget.removeTab(index)
+            
+            self.tabs_action.remove(self.tabs_action[index])
+            self.close_tabs_action.remove(self.close_tabs_action[index])
+            self.text_areas.remove(self.text_areas[index])
+
+            if(self.central_widget.count() == 0):
+                QtGui.QApplication.quit()
         else:
             pass
     
