@@ -1,4 +1,4 @@
-import sys, re
+import sys, re, platform
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt, pyqtSlot
 
@@ -194,8 +194,10 @@ class Main(QtGui.QMainWindow):
         self.toolbar.addAction(self.fontAction)
         self.toolbar.addAction(self.bgcolorAction)
 
-        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("gtk+"))
-        #QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Plastique"))
+        if(platform.system() == "Linux"):
+            QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("gtk+"))
+        else:
+            QtGui.QApplication.setStyle(QtGui.QStyleFactory.create("Plastique"))
 
         self.toolbar.addSeparator()
         self.toolbar.addAction(BulletAction)
