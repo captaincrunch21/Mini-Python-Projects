@@ -378,12 +378,16 @@ class Main(QtGui.QMainWindow):
         self.text_areas[self.idx].cursorPositionChanged.connect(self.cursorPosition)
 
     def open(self):
-        self.filename = QtGui.QFileDialog.getOpenFileName(self, 'Open File')
+        self.filename = str(QtGui.QFileDialog.getOpenFileName(self, 'Open File'))
+        local_idx = self.filename.rfind('/')
         self.idx = self.central_widget.currentIndex()
         if self.filename:
             # rt and r are same mode
             with open(self.filename, "rt") as file:
                 self.text_areas[self.idx].setText(file.read())
+            if(local_idx != -1):
+                self.filename = self.filename[local_idx+1:]
+            self.central_widget.setTabText(self.idx, self.filename)
 
     def save(self):
         self.filename = QtGui.QFileDialog.getSaveFileName(self, 'Save File')
